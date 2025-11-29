@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Location Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #matrix-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            padding: 20px;
+            z-index: 1;
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px #0f0, 0 0 20px #0f0;
+            animation: pulse 2s infinite;
+        }
+        
+        .info-box {
+            background-color: rgba(0, 20, 0, 0.7);
+            border: 2px solid #0f0;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 0 20px #0f0;
+            max-width: 600px;
+            width: 90%;
+        }
+        
+        .info-item {
+            margin: 15px 0;
+            font-size: 1.2rem;
+            text-align: left;
+        }
+        
+        .label {
+            font-weight: bold;
+            color: #0f0;
+            text-shadow: 0 0 5px #0f0;
+        }
+        
+        .value {
+            color: #fff;
+            margin-left: 10px;
+        }
+        
+        .typing {
+            overflow: hidden;
+            border-right: 2px solid #0f0;
+            white-space: nowrap;
+            margin: 0 auto;
+            animation: blink-caret 0.75s step-end infinite;
+        }
+        
+        .warning {
+            color: #ff0;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            text-shadow: 0 0 5px #ff0;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { opacity: 0.8; }
+        }
+        
+        @keyframes blink-caret {
+            from, to { border-color: transparent; }
+            50% { border-color: #0f0; }
+        }
+        
+        @media (max-width: 600px) {
+            h1 { font-size: 1.8rem; }
+            .info-item { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix-bg"></canvas>
+    
+    <div class="container">
+        <h1>SECURE IP TRACKING SYSTEM</h1>
+        
+        <div class="info-box">
+            <div class="info-item">
+                <span class="label">IP ADDRESS:</span>
+                <span class="value" id="ip-address"></span>
+            </div>
+            <div class="info-item">
+                <span class="label">APPROXIMATE LOCATION:</span>
+                <span class="value" id="location"></span>
+            </div>
+            <div class="info-item">
+                <span class="label">ISP:</span>
+                <span class="value" id="isp"></span>
+            </div>
+            <div class="info-item">
+                <span class="label">CONNECTION STATUS:</span>
+                <span class="value" id="status">TRACKING ACTIVE</span>
+            </div>
+        </div>
+        
+        <div class="warning">
+            WARNING: Your connection is being monitored for security purposes.
+        </div>
+    </div>
+
+    <script>
+        // Matrix rain effect
+        const canvas = document.getElementById('matrix-bg');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$#@%&*";
+        const charArray = chars.split("");
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        
+        const drops = [];
+        for (let i = 0; i < columns; i++) {
+            drops[i] = 1;
+        }
+        
+        function drawMatrix() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.04)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = "#0f0";
+            ctx.font = fontSize + "px monospace";
+            
+            for (let i = 0; i < drops.length; i++) {
+                const text = charArray[Math.floor(Math.random() * charArray.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                
+                drops[i]++;
+            }
+        }
+        
+        setInterval(drawMatrix, 35);
+        
+        // Get IP and location info
+        async function getIPInfo() {
+            try {
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+                
+                // Simulate typing animation for IP
+                typeText('ip-address', data.ip, 50);
+                
+                // Simulate typing animation for location
+                const locationText = `${data.city}, ${data.region}, ${data.country_name}`;
+                setTimeout(() => typeText('location', locationText, 50), 1000);
+                
+                // Simulate typing animation for ISP
+                setTimeout(() => typeText('isp', data.org || 'Unknown ISP', 50), 2000);
+                
+            } catch (error) {
+                // Fallback if API fails
+                typeText('ip-address', '192.168.1.1', 50);
+                setTimeout(() => typeText('location', 'Unknown Location', 50), 1000);
+                setTimeout(() => typeText('isp', 'Unknown ISP', 50), 2000);
+            }
+        }
+        
+        // Typing animation function
+        function typeText(elementId, text, speed) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = '';
+            let i = 0;
+            
+            function typeChar() {
+                if (i < text.length) {
+                    element.innerHTML += text.charAt(i);
+                    i++;
+                    setTimeout(typeChar, speed);
+                }
+            }
+            
+            typeChar();
+        }
+        
+        // Start the process when page loads
+        window.onload = function() {
+            getIPInfo();
+        };
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
